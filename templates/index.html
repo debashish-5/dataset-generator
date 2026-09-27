@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dataset Generator Agent</title>
+    <style>
+      :root {
+        --bg: #07111f;
+        --bg-2: #0d1b2d;
+        --panel: rgba(17, 24, 39, 0.88);
+        --panel-soft: rgba(15, 23, 42, 0.7);
+        --border: rgba(148, 163, 184, 0.2);
+        --primary: #7c3aed;
+        --primary-2: #22c55e;
+        --accent: #38bdf8;
+        --text: #e5eefb;
+        --muted: #9aa9c2;
+        --warning: #fbbf24;
+        --danger: #f87171;
+        --success: #34d399;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(124, 58, 237, 0.32), transparent 32%),
+          radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.22), transparent 28%),
+          linear-gradient(135deg, var(--bg) 0%, var(--bg-2) 100%);
+        color: var(--text);
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 28px;
+      }
+
+      .app-shell {
+        width: min(1200px, 100%);
+        min-height: 760px;
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: rgba(8, 15, 24, 0.75);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.7);
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 8px 8px 18px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        font-weight: 700;
+        color: white;
+        box-shadow: 0 10px 28px rgba(124, 58, 237, 0.45);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 1.15rem;
+        letter-spacing: 0.04em;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(52, 211, 153, 0.08);
+        border: 1px solid rgba(52, 211, 153, 0.25);
+        color: var(--success);
+        font-size: 0.8rem;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        display: inline-block;
+        box-shadow: 0 0 18px currentColor;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+      }
+
+      .panel {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.68));
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        overflow: hidden;
+      }
+
+      .panel-header {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .panel-header h2 {
+        margin: 0;
+        font-size: 1rem;
+        letter-spacing: 0.04em;
+      }
+
+      .tag {
+        border-radius: 999px;
+        padding: 7px 10px;
+        font-size: 0.76rem;
+        background: rgba(124, 58, 237, 0.16);
+        color: #d9c8ff;
+        border: 1px solid rgba(124, 58, 237, 0.26);
+      }
+
+      .chat-panel {
+        padding: 18px;
+        min-height: 620px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .messages {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        flex: 1;
+      }
+
+      .message {
+        max-width: 80%;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .message.user {
+        align-self: flex-end;
+      }
+
+      .message.agent {
+        align-self: flex-start;
+      }
+
+      .bubble {
+        padding: 12px 14px;
+        border-radius: 16px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+
+      .message.user .bubble {
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(56, 189, 248, 0.7));
+        color: white;
+        border-bottom-right-radius: 6px;
+      }
+
+      .message.agent .bubble {
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-bottom-left-radius: 6px;
+      }
+
+      .meta {
+        font-size: 0.72rem;
+        color: var(--muted);
+        padding: 0 4px;
+      }
+
+      .prompt-box {
+        margin-top: 16px;
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 110px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.7);
+        color: var(--text);
+        border-radius: 16px;
+        padding: 14px 16px;
+        font-size: 0.96rem;
+        outline: none;
+      }
+
+      textarea:focus,
+      input:focus,
+      select:focus {
+        border-color: rgba(56, 189, 248, 0.8);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+      }
+
+      .controls {
+        margin-top: 12px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .field {
+        flex: 1;
+        min-width: 120px;
+      }
+
+      .field label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      input, select {
+        width: 100%;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.7);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+      }
+
+      .generate-btn {
+        appearance: none;
+        border: none;
+        border-radius: 14px;
+        padding: 12px 18px;
+        font-weight: 700;
+        cursor: pointer;
+        color: white;
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        box-shadow: 0 14px 26px rgba(124, 58, 237, 0.35);
+        transition: transform 0.18s ease, filter 0.18s ease;
+      }
+
+      .generate-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.06);
+      }
+
+      .inspector {
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .stat-box {
+        background: rgba(15, 23, 42, 0.82);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 14px 12px;
+      }
+
+      .stat-box span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .stat-box strong {
+        display: block;
+        font-size: 1.2rem;
+        margin-top: 8px;
+      }
+
+      .preview-box {
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.82);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        border-bottom: 1px solid var(--border);
+        padding: 10px 12px;
+        text-align: left;
+        font-size: 0.8rem;
+      }
+
+      th {
+        background: rgba(124, 58, 237, 0.08);
+        color: #ddd6fe;
+      }
+
+      .footer-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+      }
+
+      .secondary-btn {
+        flex: 1;
+        appearance: none;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 11px 14px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--text);
+        background: rgba(15, 23, 42, 0.7);
+      }
+
+      @media (max-width: 920px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .chat-panel {
+          min-height: 500px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">D</div>
+          <h1>Dataset Generator Agent</h1>
+        </div>
+        <div class="status-pill"><span class="dot"></span> Ready</div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Agent conversation</h2>
+            <span class="tag">Live mode</span>
+          </div>
+
+          <div class="chat-panel">
+            <div class="messages">
+              <div class="message agent">
+                <div class="bubble">I can generate a structured CSV dataset for your app, product catalog, or research task. Tell me the domain, columns, and dataset size.</div>
+                <div class="meta">Agent • online</div>
+              </div>
+
+              <div class="message user">
+                <div class="bubble">Generate 5 sample product details for mobile phones.</div>
+                <div class="meta">You • just now</div>
+              </div>
+            </div>
+
+            <div class="prompt-box">
+              <textarea id="promptInput" placeholder="Describe the dataset you want to generate...">Generate 5 sample product details for mobile phones.</textarea>
+
+              <div class="controls">
+                <div class="field">
+                  <label for="fileName">Filename</label>
+                  <input id="fileName" type="text" value="phone.csv" />
+                </div>
+
+                <div class="field">
+                  <label for="rowsCount">Rows</label>
+                  <select id="rowsCount">
+                    <option>5</option>
+                    <option>10</option>
+                    <option>25</option>
+                    <option>50</option>
+                  </select>
+                </div>
+
+                <button id="generateBtn" class="generate-btn">Generate dataset</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel inspector">
+          <div class="panel-header">
+            <h2>Dataset preview</h2>
+            <span class="tag">CSV</span>
+          </div>
+
+          <div class="stats">
+            <div class="stat-box">
+              <span>Rows</span>
+              <strong id="rowStat">5</strong>
+            </div>
+            <div class="stat-box">
+              <span>Columns</span>
+              <strong id="colStat">4</strong>
+            </div>
+            <div class="stat-box">
+              <span>Status</span>
+              <strong id="statusStat">Ready</strong>
+            </div>
+          </div>
+
+          <div class="preview-box">
+            <div class="preview-header">
+              <span>Preview</span>
+              <span id="fileBadge">phone.csv</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Brand</th>
+                  <th>Model</th>
+                  <th>RAM</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody id="previewBody">
+                <tr>
+                  <td>Samsung</td>
+                  <td>Galaxy A54</td>
+                  <td>8GB</td>
+                  <td>$399</td>
+                </tr>
+                <tr>
+                  <td>Apple</td>
+                  <td>iPhone 13</td>
+                  <td>4GB</td>
+                  <td>$699</td>
+                </tr>
+                <tr>
+                  <td>Xiaomi</td>
+                  <td>Redmi Note 12</td>
+                  <td>6GB</td>
+                  <td>$249</td>
+                </tr>
+                <tr>
+                  <td>OnePlus</td>
+                  <td>OnePlus Nord 3</td>
+                  <td>12GB</td>
+                  <td>$529</td>
+                </tr>
+                <tr>
+                  <td>Motorola</td>
+                  <td>G Stylus</td>
+                  <td>6GB</td>
+                  <td>$299</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer-actions">
+            <button class="secondary-btn" type="button">Export CSV</button>
+            <button class="secondary-btn" type="button">Save draft</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const promptInput = document.getElementById('promptInput');
+      const rowsCount = document.getElementById('rowsCount');
+      const fileNameInput = document.getElementById('fileName');
+      const generateBtn = document.getElementById('generateBtn');
+      const previewBody = document.getElementById('previewBody');
+      const statusStat = document.getElementById('statusStat');
+      const rowStat = document.getElementById('rowStat');
+      const fileBadge = document.getElementById('fileBadge');
+
+      const mobileBrands = ['Samsung', 'Apple', 'Xiaomi', 'OnePlus', 'Motorola', 'Nokia', 'Google'];
+      const models = ['Galaxy A54', 'iPhone 13', 'Redmi Note 12', 'OnePlus Nord 3', 'G Stylus', 'Pixel 8', 'C32'];
+      const rams = ['4GB', '6GB', '8GB', '12GB'];
+
+      function makeRow(index) {
+        const brand = mobileBrands[index % mobileBrands.length];
+        const model = models[(index + 2) % models.length];
+        const ram = rams[index % rams.length];
+        const price = 199 + ((index * 77) % 700);
+        return { brand, model, ram, price: `$${price}` };
+      }
+
+      function renderPreview(count) {
+        const rows = Array.from({ length: count }, (_, i) => makeRow(i));
+        previewBody.innerHTML = rows
+          .map(
+            (row) => `
+              <tr>
+                <td>${row.brand}</td>
+                <td>${row.model}</td>
+                <td>${row.ram}</td>
+                <td>${row.price}</td>
+              </tr>
+            `
+          )
+          .join('');
+
+        rowStat.textContent = String(count);
+      }
+
+      function updateFileBadge() {
+        const filename = fileNameInput.value.trim() || 'dataset.csv';
+        fileBadge.textContent = filename;
+      }
+
+      generateBtn.addEventListener('click', async () => {
+        const count = Number(rowsCount.value) || 5;
+        const prompt = promptInput.value.trim() || 'Generate a sample mobile phone dataset';
+        const filename = fileNameInput.value.trim() || 'dataset.csv';
+
+        statusStat.textContent = 'Generating';
+        generateBtn.textContent = 'Generating...';
+        generateBtn.disabled = true;
+
+        try {
+          const response = await fetch('/generate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              query: prompt,
+              filename,
+              rows: count
+            })
+          });
+
+          const data = await response.json();
+          const message = document.createElement('div');
+          message.className = 'message agent';
+          message.innerHTML = `
+            <div class="bubble">${data.message || 'Dataset generated successfully.'}</div>
+            <div class="meta">Agent • completed</div>
+          `;
+          document.querySelector('.messages').appendChild(message);
+
+          renderPreview(count);
+          updateFileBadge();
+          statusStat.textContent = 'Ready';
+        } catch (error) {
+          const message = document.createElement('div');
+          message.className = 'message agent';
+          message.innerHTML = `
+            <div class="bubble">Error: ${error.message}</div>
+            <div class="meta">Agent • failed</div>
+          `;
+          document.querySelector('.messages').appendChild(message);
+          statusStat.textContent = 'Error';
+        } finally {
+          generateBtn.textContent = 'Generate dataset';
+          generateBtn.disabled = false;
+        }
+      });
+
+      rowsCount.addEventListener('change', () => renderPreview(Number(rowsCount.value) || 5));
+      fileNameInput.addEventListener('input', updateFileBadge);
+      renderPreview(Number(rowsCount.value) || 5);
+      updateFileBadge();
+    </script>
+  </body>
+</html>
