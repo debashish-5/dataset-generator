@@ -13,6 +13,23 @@ BASE_DIR = Path(__file__).resolve().parent
 DATASET_DIR = BASE_DIR / "generated_datasets"
 DATASET_DIR.mkdir(exist_ok=True)
 
+
+def clean_filename(filename: str) -> str:
+    """
+    Makes sure the filename is safe and ends with .csv
+    """
+
+    filename = Path(filename).name
+
+    # Remove unwanted characters
+    filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", filename)
+
+    if not filename.lower().endswith(".csv"):
+        filename += ".csv"
+
+    return filename
+
+
 class Dataset(BaseModel):
     file_name:str = Field(description="For Dataset Name (csv file format allowed only, Example: 'data.csv')")
     columns:list[str] = Field(description="Name of the columns for dataset generator , if user don't give the columns name you can take columns by own.")
