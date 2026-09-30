@@ -502,103 +502,323 @@
     </div>
 
     <script>
-      const promptInput = document.getElementById('promptInput');
-      const rowsCount = document.getElementById('rowsCount');
-      const fileNameInput = document.getElementById('fileName');
-      const generateBtn = document.getElementById('generateBtn');
-      const previewBody = document.getElementById('previewBody');
-      const statusStat = document.getElementById('statusStat');
-      const rowStat = document.getElementById('rowStat');
-      const fileBadge = document.getElementById('fileBadge');
 
-      const mobileBrands = ['Samsung', 'Apple', 'Xiaomi', 'OnePlus', 'Motorola', 'Nokia', 'Google'];
-      const models = ['Galaxy A54', 'iPhone 13', 'Redmi Note 12', 'OnePlus Nord 3', 'G Stylus', 'Pixel 8', 'C32'];
-      const rams = ['4GB', '6GB', '8GB', '12GB'];
+    const promptInput = document.getElementById('promptInput');
+    const rowsCount = document.getElementById('rowsCount');
+    const fileNameInput = document.getElementById('fileName');
+    const generateBtn = document.getElementById('generateBtn');
 
-      function makeRow(index) {
-        const brand = mobileBrands[index % mobileBrands.length];
-        const model = models[(index + 2) % models.length];
-        const ram = rams[index % rams.length];
-        const price = 199 + ((index * 77) % 700);
-        return { brand, model, ram, price: `$${price}` };
-      }
+    const previewBody = document.getElementById('previewBody');
 
-      function renderPreview(count) {
-        const rows = Array.from({ length: count }, (_, i) => makeRow(i));
-        previewBody.innerHTML = rows
-          .map(
-            (row) => `
-              <tr>
-                <td>${row.brand}</td>
-                <td>${row.model}</td>
-                <td>${row.ram}</td>
-                <td>${row.price}</td>
-              </tr>
-            `
-          )
-          .join('');
+    const statusStat = document.getElementById('statusStat');
+    const rowStat = document.getElementById('rowStat');
+    const colStat = document.getElementById('colStat');
 
-        rowStat.textContent = String(count);
-      }
+    const fileBadge = document.getElementById('fileBadge');
 
-      function updateFileBadge() {
-        const filename = fileNameInput.value.trim() || 'dataset.csv';
+
+    // ============================================================
+    // ADD CHAT MESSAGE
+    // ============================================================
+
+    function addMessage(text, type = "agent", meta = "Agent") {
+
+        const message = document.createElement("div");
+
+        message.className = `message ${type}`;
+
+        const bubble = document.createElement("div");
+
+        bubble.className = "bubble";
+
+        bubble.textContent = text;
+
+        const metaElement = document.createElement("div");
+
+        metaElement.className = "meta";
+
+        metaElement.textContent = meta;
+
+        message.appendChild(bubble);
+        message.appendChild(metaElement);
+
+        document.querySelector(".messages").appendChild(message);
+
+        // Scroll to bottom
+        const messages = document.querySelector(".messages");
+
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+
+    // ============================================================
+    // RENDER REAL DATA FROM BACKEND
+    // ============================================================
+
+    function renderDataset(columns, data) {
+
+        // --------------------------------------------------------
+        // Update table header
+        // --------------------------------------------------------
+
+        const thead = document.querySelector("table thead");
+
+        thead.innerHTML = "";
+
+        const headerRow = document.createElement("tr");
+
+        columns.forEach(column => {
+
+            const th = document.createElement("th");
+
+            th.textContent = column;
+
+            headerRow.appendChild(th);
+
+        });
+
+        thead.appendChild(headerRow);
+
+
+        // --------------------------------------------------------
+        // Clear old rows
+        // --------------------------------------------------------
+
+        previewBody.innerHTML = "";
+
+
+        // --------------------------------------------------------
+        // Render generated rows
+        // --------------------------------------------------------
+
+        data.forEach(row => {
+
+            const tr = document.createElement("tr");
+
+            row.forEach(value => {
+
+                const td = document.createElement("td");
+
+                td.textContent = value;
+
+                tr.appendChild(td);
+
+            });
+
+            previewBody.appendChild(tr);
+
+        });
+
+
+        // --------------------------------------------------------
+        // Update statistics
+        // --------------------------------------------------------
+
+        rowStat.textContent = String(data.length);
+
+        colStat.textContent = String(columns.length);
+    }
+
+
+    // ============================================================
+    // UPDATE FILE NAME
+    // ============================================================
+
+    function updateFileBadge() {
+
+        const filename =
+            fileNameInput.value.trim() || "dataset.csv";
+
         fileBadge.textContent = filename;
-      }
+    }
 
-      generateBtn.addEventListener('click', async () => {
-        const count = Number(rowsCount.value) || 5;
-        const prompt = promptInput.value.trim() || 'Generate a sample mobile phone dataset';
-        const filename = fileNameInput.value.trim() || 'dataset.csv';
 
-        statusStat.textContent = 'Generating';
-        generateBtn.textContent = 'Generating...';
+    // ============================================================
+    // GENERATE DATASET
+    // ============================================================
+
+    generateBtn.addEventListener("click", async () => {
+
+        const count =
+            Number(rowsCount.value) || 5;
+
+        const prompt =
+            promptInput.value.trim()
+            || "Generate a sample mobile phone dataset";
+
+
+        const filename =
+            fileNameInput.value.trim()
+            || "dataset.csv";
+
+
+        // --------------------------------------------------------
+        // UI: GENERATING
+        // --------------------------------------------------------
+
+        statusStat.textContent = "Generating...";
+
+        generateBtn.textContent = "Generating...";
+
         generateBtn.disabled = true;
 
+
+        addMessage(
+            prompt,
+            "user",
+            "You • just now"
+        );
+
+
         try {
-          const response = await fetch('/generate', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              query: prompt,
-              filename,
-              rows: count
-            })
-          });
 
-          const data = await response.json();
-          const message = document.createElement('div');
-          message.className = 'message agent';
-          message.innerHTML = `
-            <div class="bubble">${data.message || 'Dataset generated successfully.'}</div>
-            <div class="meta">Agent • completed</div>
-          `;
-          document.querySelector('.messages').appendChild(message);
+            // ====================================================
+            // SEND REQUEST TO FLASK
+            // ====================================================
 
-          renderPreview(count);
-          updateFileBadge();
-          statusStat.textContent = 'Ready';
+            const response = await fetch("/generate", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    query: prompt,
+
+                    filename: filename,
+
+                    rows: count
+
+                })
+
+            });
+
+
+            // ====================================================
+            // READ RESPONSE
+            // ====================================================
+
+            const data = await response.json();
+
+
+            // ====================================================
+            // HANDLE BACKEND ERROR
+            // ====================================================
+
+            if (!response.ok || data.status !== "success") {
+
+                throw new Error(
+                    data.message || "Dataset generation failed."
+                );
+
+            }
+
+
+            // ====================================================
+            // RENDER REAL LLM DATA
+            // ====================================================
+
+            renderDataset(
+                data.columns,
+                data.data
+            );
+
+
+            // ====================================================
+            // UPDATE UI
+            // ====================================================
+
+            fileBadge.textContent =
+                data.file_name;
+
+            rowStat.textContent =
+                String(data.rows);
+
+            colStat.textContent =
+                String(data.columns_count);
+
+            statusStat.textContent =
+                "Ready";
+
+
+            // ====================================================
+            // AGENT MESSAGE
+            // ====================================================
+
+            addMessage(
+                `Dataset generated successfully with ${data.rows} rows and ${data.columns_count} columns. Saved as ${data.file_name}.`,
+                "agent",
+                "Agent • completed"
+            );
+
+
         } catch (error) {
-          const message = document.createElement('div');
-          message.className = 'message agent';
-          message.innerHTML = `
-            <div class="bubble">Error: ${error.message}</div>
-            <div class="meta">Agent • failed</div>
-          `;
-          document.querySelector('.messages').appendChild(message);
-          statusStat.textContent = 'Error';
-        } finally {
-          generateBtn.textContent = 'Generate dataset';
-          generateBtn.disabled = false;
-        }
-      });
 
-      rowsCount.addEventListener('change', () => renderPreview(Number(rowsCount.value) || 5));
-      fileNameInput.addEventListener('input', updateFileBadge);
-      renderPreview(Number(rowsCount.value) || 5);
-      updateFileBadge();
+            console.error(error);
+
+
+            // ====================================================
+            // ERROR UI
+            // ====================================================
+
+            statusStat.textContent =
+                "Error";
+
+
+            addMessage(
+                `Error: ${error.message}`,
+                "agent",
+                "Agent • failed"
+            );
+
+
+        } finally {
+
+            generateBtn.textContent =
+                "Generate dataset";
+
+            generateBtn.disabled =
+                false;
+
+        }
+
+    });
+
+
+    // ============================================================
+    // ROW COUNT CHANGE
+    // ============================================================
+
+    rowsCount.addEventListener(
+        "change",
+        () => {
+
+            rowStat.textContent =
+                rowsCount.value;
+
+        }
+    );
+
+
+    // ============================================================
+    // FILENAME CHANGE
+    // ============================================================
+
+    fileNameInput.addEventListener(
+        "input",
+        updateFileBadge
+    );
+
+
+    // ============================================================
+    // INITIAL UI
+    // ============================================================
+
+    updateFileBadge();
+
     </script>
   </body>
 </html>

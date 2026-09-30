@@ -3,8 +3,15 @@ from typing_extensions import TypedDict, Literal
 from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama
 import pandas as pd
-from flask import Flask,render_template,request
+from flask import Flask,render_template,request,jsonify
 import requests
+from pathlib import Path
+import re
+
+BASE_DIR = Path(__file__).resolve().parent
+
+DATASET_DIR = BASE_DIR / "generated_datasets"
+DATASET_DIR.mkdir(exist_ok=True)
 
 class Dataset(BaseModel):
     file_name:str = Field(description="For Dataset Name (csv file format allowed only, Example: 'data.csv')")
@@ -29,28 +36,85 @@ def generate_dataset(query:str,filepath:str = None) -> str:
 
 app = Flask(__name__)
 
+
 @app.route("/")
 def home():
-    return render_template("index.html")
+
+    return render_template(
+        "index.html"
+    )
 
 
 @app.route("/generate", methods=["POST"])
 def generate_api():
-    payload = request.get_json(silent=True) or {}
-    query = payload.get("query") or payload.get("prompt") or "Generate 5 sample product details for mobile phones."
-    result = generate_dataset(query=query)
-    return {'status':'success','message':result}
+
+    try:
+
+        payload = request.get_json(silent=True) or {}
 
 
+        query = (
+            payload.get("query")
+            or payload.get("prompt")
+            or "Generate 5 sample product details for mobile phones."
+        )
+
+        filename = (
+            payload.get("filename")
+            or "dataset.csv"
+        )
+
+        rows = payload.get("rows") or 5
+
+
+        try:
+            rows = int(rows)
+
+        except (TypeError, ValueError):
+
+            rows = 5
+
+
+        result = generate_dataset(
+            query=query,
+            filename=filename,
+            rows=rows
+        )
+
+
+
+        return jsonify({
+            "status": "success",
+            "message": (
+                f"Dataset generated successfully: "
+                f"{result['file_name']}"
+            ),
+            "file_name": result["file_name"],
+            "rows": result["rows"],
+            "columns_count": result["columns_count"],
+            "columns": result["columns"],
+            "data": result["data"]
+        })
+
+    except Exception as e:
+
+        print("ERROR:", e)
+
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 @app.route("/click", methods=["POST"])
 def click_handler():
+
     return generate_api()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
 
-
-
-    
+    app.run(
+        debug=True,
+        host="127.0.0.1",
+        port=5000
+    )
