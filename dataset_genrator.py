@@ -36,7 +36,7 @@ class Dataset(BaseModel):
     data: list[list] = Field(description="Data/rows for creating dataset")
 
 
-def generate_dataset(query:str,filepath:str = None) -> str:
+def generate_dataset(query:str,filepath:str | None = None) -> str:
     prompt = f"""
     You are a professional synthetic dataset generator.
 
@@ -70,7 +70,8 @@ def generate_dataset(query:str,filepath:str = None) -> str:
         
     df = pd.DataFrame(data=generator.data, columns=generator.columns)
     if not filepath:
-        raise ValueError("filename is not given by user")
+        filepath = generator.file_name
+    
     filepath = BASE_DIR /filepath
     df.to_csv(filepath, index = False)
     return {
