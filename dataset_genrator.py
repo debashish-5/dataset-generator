@@ -36,7 +36,7 @@ class Dataset(BaseModel):
     data: list[list] = Field(description="Data/rows for creating dataset")
 
 
-def generate_dataset(query:str,filepath:str | None = None) -> str:
+def generate_dataset(query:str, filepath:str | None = None, rows:int = 5) -> dict:
     prompt = f"""
     You are a professional synthetic dataset generator.
 
@@ -49,17 +49,15 @@ def generate_dataset(query:str,filepath:str | None = None) -> str:
     2. Create useful and realistic synthetic data.
     3. Decide suitable column names if the user did not specify them.
     4. Every row must have exactly the same number of values as the columns.
-    5. Return structured data only.
-    6. The output must be suitable for saving as a CSV file.
-    7. Use this filename:
-
+    5. Generate exactly {rows} rows.
+    6. Return structured data only.
+    7. The output must be suitable for saving as a CSV file.
     """
-    query = prompt.invoke({'query':query})
 
 
     model = ChatOllama(model = "mistral")
     structured_model = model.with_structured_output(Dataset)
-    generator = structured_model.invoke(query)
+    generator = structured_model.invoke(prompt)
     if not generator.columns:
         raise ValueError("The Model did not generate any columns.")
     if not generator.data:
@@ -128,7 +126,7 @@ def generate_api():
 
         result = generate_dataset(
             query=query,
-            filename=filename,
+            filepath=filename,
             rows=rows
         )
 
