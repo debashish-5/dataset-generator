@@ -37,17 +37,50 @@ class Dataset(BaseModel):
 
 
 def generate_dataset(query:str,filepath:str = None) -> str:
+    prompt = f"""
+    You are a professional synthetic dataset generator.
+
+    User request:
+    {query}
+
+    Requirements:
+
+    1. Generate best data.
+    2. Create useful and realistic synthetic data.
+    3. Decide suitable column names if the user did not specify them.
+    4. Every row must have exactly the same number of values as the columns.
+    5. Return structured data only.
+    6. The output must be suitable for saving as a CSV file.
+    7. Use this filename:
+
+    """
+    query = prompt.invoke({'query':query})
+
+
     model = ChatOllama(model = "mistral")
     structured_model = model.with_structured_output(Dataset)
     generator = structured_model.invoke(query)
+    if not generator.columns:
+        raise ValueError("The Model did not generate any columns.")
+    if not generator.data:
+        raise ValueError("The Model did not generate any data")
+    for row in generator.data:
+        if len(row) != len(generator.columns):
+            raise ValueError("Generate rows do not match with the number of columns")
+        
     df = pd.DataFrame(data=generator.data, columns=generator.columns)
     if not filepath:
-        df.to_csv(generator.file_name,index=False)
-        return "Data created & Saved Successfully"
-
+        raise ValueError("filename is not given by user")
+    filepath = BASE_DIR /filepath
     df.to_csv(filepath, index = False)
-    return "Data created & Saved Successfully"
-
+    return {
+        "file_name": filepath,
+        "file_path": str(filepath),
+        "columns": generator.columns,
+        "data": df.astype(str).values.tolist(),
+        "rows": len(df),
+        "columns_count": len(df.columns)
+    }
 
 
 
