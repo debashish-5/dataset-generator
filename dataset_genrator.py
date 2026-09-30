@@ -31,7 +31,7 @@ def clean_filename(filename: str) -> str:
 
 
 class Dataset(BaseModel):
-    file_name:str = Field(description="For Dataset Name (csv file format allowed only, Example: 'data.csv')")
+    file_name:str = Field(description="Analyze your user aim and take sweetable name For the dataset file (csv file format allowed only, Example: 'data.csv').Give complete filename.")
     columns:list[str] = Field(description="Name of the columns for dataset generator , if user don't give the columns name you can take columns by own.")
     data: list[list] = Field(description="Data/rows for creating dataset")
 
@@ -72,11 +72,11 @@ def generate_dataset(query:str,filepath:str | None = None) -> str:
     if not filepath:
         filepath = generator.file_name
     
-    filepath = BASE_DIR /filepath
-    df.to_csv(filepath, index = False)
+    filepath_full = BASE_DIR /filepath
+    df.to_csv(filepath_full, index = False)
     return {
         "file_name": filepath,
-        "file_path": str(filepath),
+        "file_path": str(filepath_full),
         "columns": generator.columns,
         "data": df.astype(str).values.tolist(),
         "rows": len(df),
