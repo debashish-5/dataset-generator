@@ -8,12 +8,17 @@ import requests
 from pathlib import Path
 import re
 
+from langsmith import traceable
+from dotenv import load_dotenv
+
+load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent
 
 DATASET_DIR = BASE_DIR / "generated_datasets"
 DATASET_DIR.mkdir(exist_ok=True)
 
-
+@traceable(name= "Clean File Name")
 def clean_filename(filename: str) -> str:
     """
     Makes sure the filename is safe and ends with .csv
@@ -36,6 +41,7 @@ class Dataset(BaseModel):
     data: list[list] = Field(description="Data/rows for creating dataset")
 
 
+@traceable("Dataset Generator")
 def generate_dataset(query:str, filepath:str | None = None, rows:int = 5) -> dict:
     prompt = f"""
     You are a professional synthetic dataset generator.
@@ -87,6 +93,7 @@ app = Flask(__name__)
 
 
 @app.route("/")
+@traceable(name= "Home")
 def home():
 
     return render_template(
@@ -95,6 +102,7 @@ def home():
 
 
 @app.route("/generate", methods=["POST"])
+@traceable(name=  "GENERATE API")
 def generate_api():
 
     try:
@@ -155,6 +163,7 @@ def generate_api():
         }), 500
 
 @app.route("/click", methods=["POST"])
+@traceable("Click Handler")
 def click_handler():
 
     return generate_api()
