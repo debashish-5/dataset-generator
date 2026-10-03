@@ -41,7 +41,7 @@ class Dataset(BaseModel):
     data: list[list] = Field(description="Data/rows for creating dataset")
 
 
-@traceable("Dataset Generator")
+@traceable(name="Dataset Generator")
 def generate_dataset(query:str, filepath:str | None = None, rows:int = 5) -> dict:
     prompt = f"""
     You are a professional synthetic dataset generator.
