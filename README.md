@@ -1,224 +1,331 @@
-
-<div align="center">
-
 # Dataset Generator
 
+**Agentic Synthetic Data Synthesis Platform Powered by Local LLMs, LangChain, and LangSmith Observability**
 
-</div>
+---
+
+[Architectural Overview](https://www.google.com/search?q=%23architectural-overview) • [System Flow & Tracing](https://www.google.com/search?q=%23system-flow--tracing) • [Codebase Walkthrough](https://www.google.com/search?q=%23codebase-walkthrough) • [Repository Directory](https://www.google.com/search?q=%23repository-directory) • [Installation & Setup](https://www.google.com/search?q=%23installation--setup) • [API Protocol](https://www.google.com/search?q=%23api-protocol) • [Troubleshooting & Validation](https://www.google.com/search?q=%23troubleshooting--validation)
 
 ---
 
 ## Technical Overview
 
-Dataset Generator is a Python-backed synthetic data synthesis platform designed to generate high-volume, schema-accurate tabular datasets. Built with a high-throughput Flask API backend, a responsive client-side interface, and interactive Jupyter notebook prototyping tooling, the repository provides an end-to-end framework for data engineering, model training setup, and software verification testing.
+**Dataset Generator** is an agentic synthetic data creation system that leverages local large language models via **LangChain** and **Ollama**, enforced by **Pydantic** structured schemas, and fully monitored through **LangSmith** observability tracing.
 
-The platform eliminates cold-start data generation challenges by decoupling schema definitions from synthesis algorithms, allowing dynamic row generation, parameter constraints, and automated multi-format outputs.
-
----
-
-## Core Capabilities
-
-* **High-Throughput Synthetic Generation:** Microsecond tabular vector generation powered by Pandas vectorization and underlying array operations.
-* **Dynamic Web GUI Interface:** Lightweight HTML5 frontend templates (`templates/`) for configuring fields, data types, statistical distributions, and row boundaries.
-* **Interactive Research Environment:** Dedicated Jupyter workspace (`test.ipynb`) for schema validation, feature engineering experiments, and algorithm prototyping.
-* **RESTful Engine Architecture:** Decoupled backend service (`dataset_genrator.py`) exposing endpoint protocols for third-party script integrations and automated CI/CD pipelines.
-* **Multi-Format Persistence Layer:** Instant compilation and persistence into CSV (`phone.csv`), JSON, or memory-mapped data structures.
+Unlike simple random data mock generators, this system utilizes context-aware generative AI (`Mistral` LLM) to produce schema-accurate, domain-specific tabular datasets on demand. The architecture exposes a **Flask REST API** and client-side web interface for web generation, alongside a **Jupyter Notebook workspace** (`test.ipynb`) for schema prototyping.
 
 ---
 
-## System Architecture
+## Architectural Overview
+
+The core generation pipeline decouples prompt orchestration from output verification using Pydantic structured output models (`Dataset`). The execution graph follows an end-to-end traced workflow:
 
 ```text
-+-------------------------------------------------------------------------------+
-|                            CLIENT INTERFACE LAYER                             |
-|                                                                               |
-|   +-----------------------+                    +--------------------------+   |
-|   |   Web GUI Dashboard   |                    |   Jupyter Lab/Notebook   |   |
-|   |   (templates/index)   |                    |       (test.ipynb)       |   |
-|   +-----------+-----------+                    +------------+-------------+   |
-+---------------+---------------------------------------------+-----------------+
-                |                                             |
-                |  HTTP POST /generate                        | Direct Import
-                v                                             v
-+-------------------------------------------------------------------------------+
-|                             CORE ENGINE LAYER                                 |
-|                                                                               |
-|   +-----------------------------------------------------------------------+   |
-|   |                         dataset_genrator.py                           |   |
-|   |  +---------------------+  +--------------------+  +----------------+  |   |
-|   |  | Flask Router / API  |  | Schema Configurator|  | Data Synthesizer| |   |
-|   |  +----------+----------+  +---------+----------+  +-------+--------+  |   |
-|   +-------------|-----------------------|---------------------|-----------+   |
-+-----------------|-----------------------|---------------------|---------------+
-                  |                       |                     |
-                  v                       v                     v
-+-------------------------------------------------------------------------------+
-|                            DATA PROCESSING ENGINE                             |
-|                                                                               |
-|   +-----------------------------------------------------------------------+   |
-|   |                       Pandas & NumPy Vector Array                     |   |
-|   |             [ Schema Validation | Array Transformation ]             |   |
-|   +------------------------------------+----------------------------------+   |
-+----------------------------------------|--------------------------------------+
-                                         |
-                                         v
-+-------------------------------------------------------------------------------+
-|                              PERSISTENCE LAYER                                |
-|                                                                               |
-|   +-----------------------+                    +--------------------------+   |
-|   |   Structured CSV      |                    |   JSON / Raw Stream      |   |
-|   |     (phone.csv)       |                    |     (In-Memory Buffer)   |   |
-|   +-----------------------+                    +--------------------------+   |
-+-------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------+
+|                                 CLIENT LAYER                                      |
+|                                                                                   |
+|    +--------------------------+                      +-----------------------+    |
+|    |   Web UI (index.html)    |                      |   Jupyter Notebook    |    |
+|    |   HTTP POST /generate    |                      |     (test.ipynb)      |    |
+|    +------------+-------------+                      +-----------+-----------+    |
++-----------------|------------------------------------------------|----------------+
+                  |                                                |
+                  v                                                v
++-----------------------------------------------------------------------------------+
+|                          FLASK BACKEND CONTROLLER LAYER                           |
+|                                                                                   |
+|    +-------------------------------------------------------------------------+    |
+|    |                         dataset_genrator.py                             |    |
+|    |                                                                         |    |
+|    |   [ Home Route: / ]    [ API Endpoint: /generate ]   [ Handler: /click ]|    |
+|    +------------------------------------+------------------------------------+    |
++-----------------------------------------|-----------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+|                        LANGCHAIN & LLM ENGINE LAYER                               |
+|                                                                                   |
+|    +-------------------------------------------------------------------------+    |
+|    |                     generate_dataset() Generator                        |    |
+|    |                                                                         |    |
+|    |  1. Prompt Builder (System Instructions + User Prompt + Row Constraints)|    |
+|    |  2. ChatOllama(model="mistral") Engine                                  |    |
+|    |  3. Structured Output Binding (.with_structured_output(Dataset))        |    |
+|    +------------------------------------+------------------------------------+    |
++-----------------------------------------|-----------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+|                     VALIDATION & DATA PROCESSING ENGINE                           |
+|                                                                                   |
+|    +-------------------------------------------------------------------------+    |
+|    |  Pydantic Model (Dataset):                                              |    |
+|    |  - file_name: str                                                       |    |
+|    |  - columns: list[str]                                                   |    |
+|    |  - data: list[list]                                                     |    |
+|    |                                                                         |    |
+|    |  Parity Verification: len(row) == len(columns) for all rows             |    |
+|    |  Filename Sanitizer: clean_filename() (Regex safety + .csv enforce)     |    |
+|    |  Pandas DataFrame Construction: pd.DataFrame(data, columns)             |    |
+|    +------------------------------------+------------------------------------+    |
++-----------------------------------------|-----------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+|                     PERSISTENCE & OBSERVABILITY LAYER                             |
+|                                                                                   |
+|    +----------------------------------+   +----------------------------------+    |
+|    |       Disk Storage System        |   |       LangSmith Tracing          |    |
+|    |   BASE_DIR / generated_datasets  |   |   @traceable decoratored runs    |    |
+|    |   Exported CSV Output File       |   |   Execution metrics & latency    |    |
+|    +----------------------------------+   +----------------------------------+    |
++-----------------------------------------------------------------------------------+
 
 ```
 
 ---
 
-## Execution Sequence Lifecycle
+## System Flow & Tracing
+
+The generation process uses strict validation gates to guarantee tabular integrity:
 
 ```text
-User / HTTP Request ──> API Controller [dataset_genrator.py]
-                             │
-                             ├──> Parse Schema Payload (Columns, Types, Bounds)
-                             │
-                             ├──> Initialize Vector Generator Matrix (NumPy Engine)
-                             │
-                             ├──> Map Structured Constraints & Apply Distributions
-                             │
-                             ├──> Assemble DataFrame Object (Pandas Pipeline)
-                             │
-                             └──> Export Target Artifact ──> [ phone.csv / Buffer Stream ]
+User Payload ──> [Flask API Controller]
+                       │
+                       ▼
+            [@traceable: "Dataset Generator"]
+                       │
+                       ├──> Construct System Context & User Query Prompt
+                       │
+                       ├──> Invoke ChatOllama("mistral") via Structured Output
+                       │
+                       ├──> Validate Non-Empty Columns & Data Matrices
+                       │
+                       ├──> Verify Row-to-Column Length Matching
+                       │
+                       ├──> [@traceable: "Clean File Name"] Sanitization
+                       │
+                       ├──> Construct Pandas DataFrame & Export CSV to Disk
+                       │
+                       └──> Return JSON Payload (Columns, Matrix, Row Count)
+
+```
+
+### Observability Tracing Wrappers
+
+LangSmith tracing is integrated across function boundaries using `@traceable`:
+
+* `@traceable(name="Clean File Name")`: Tracks string sanitization performance and regex execution.
+* `@traceable(name="Dataset Generator")`: Monitors LLM token generation latency, schema parsing success, and matrix integrity checks.
+* `@traceable(name="Home")`: Logs landing page visits.
+* `@traceable(name="GENERATE API")`: Logs REST API requests, status payload outputs, and runtime exceptions.
+* `@traceable("Click Handler")`: Monitors user interaction handlers.
+
+---
+
+## Codebase Walkthrough
+
+### 1. Pydantic Structured Data Schema
+
+The model enforces structured tabular outputs directly from the LLM engine:
+
+```python
+class Dataset(BaseModel):
+    file_name: str = Field(
+        description="Analyze user goal and choose a suitable dataset filename (CSV format only, e.g., 'data.csv')."
+    )
+    columns: list[str] = Field(
+        description="List of column names. If unspecified by user, infer appropriate names automatically."
+    )
+    data: list[list] = Field(
+        description="Two-dimensional matrix representing row values for the generated dataset."
+    )
+
+```
+
+### 2. File Name Sanitizer Engine
+
+Removes unsafe characters and ensures proper `.csv` extension attachment:
+
+```python
+@traceable(name="Clean File Name")
+def clean_filename(filename: str) -> str:
+    filename = Path(filename).name
+    filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", filename)
+    if not filename.lower().endswith(".csv"):
+        filename += ".csv"
+    return filename
+
+```
+
+### 3. Core Synthesis Function (`generate_dataset`)
+
+Constructs the LLM prompt, binds the Pydantic schema, executes structured inference via Ollama, validates column-row parity, builds a Pandas DataFrame, and saves the file:
+
+```python
+@traceable(name="Dataset Generator")
+def generate_dataset(query: str, filepath: str | None = None, rows: int = 5) -> dict:
+    prompt = f"""
+    You are a professional synthetic dataset generator.
+
+    User request:
+    {query}
+
+    Requirements:
+    1. Generate best data.
+    2. Create useful and realistic synthetic data.
+    3. Decide suitable column names if the user did not specify them.
+    4. Every row must have exactly the same number of values as the columns.
+    5. Generate exactly {rows} rows.
+    6. Return structured data only.
+    7. The output must be suitable for saving as a CSV file.
+    """
+
+    model = ChatOllama(model="mistral")
+    structured_model = model.with_structured_output(Dataset)
+    generator = structured_model.invoke(prompt)
+
+    # Matrix integrity verification
+    if not generator.columns:
+        raise ValueError("The Model did not generate any columns.")
+    if not generator.data:
+        raise ValueError("The Model did not generate any data.")
+    for row in generator.data:
+        if len(row) != len(generator.columns):
+            raise ValueError("Generated row length does not match column count.")
+
+    df = pd.DataFrame(data=generator.data, columns=generator.columns)
+    if not filepath:
+        filepath = generator.file_name
+
+    filepath_full = BASE_DIR / filepath
+    df.to_csv(filepath_full, index=False)
+    
+    return {
+        "file_name": filepath,
+        "file_path": str(filepath_full),
+        "columns": generator.columns,
+        "data": df.astype(str).values.tolist(),
+        "rows": len(df),
+        "columns_count": len(df.columns)
+    }
 
 ```
 
 ---
 
-## Directory Blueprint
+## Repository Directory
 
 ```text
 dataset-generator/
 │
-├── templates/                  # Frontend Template Directory
-│   └── index.html              # Dynamic GUI dashboard template for configuration
+├── generated_datasets/         # Target output directory for dynamically built CSVs
+├── templates/                  # Web interface template assets
+│   └── index.html              # Interactive client UI dashboard
 │
-├── dataset_genrator.py         # Core Python engine, API server, and generator routing
-├── phone.csv                   # Sample generated tabular artifact output
-├── test.ipynb                  # Experimental notebook for workflow validation
-└── .vscode/                    # Workspace configuration & python environment bindings
+├── .vscode/                    # Workspace & Python interpreter environment configurations
+├── .env                        # Environment variables (API Keys, LangSmith settings)
+├── .gitignore                  # Git tracking exclusion rules
+├── dataset_genrator.py         # Main Flask server, LangChain LLM generator, and API
+├── phone.csv                   # Sample dataset output artifact (mobile product specs)
+├── udemy.csv                   # Sample dataset output artifact (course data)
+└── test.ipynb                  # Interactive Jupyter notebook for prototyping & testing
 
 ```
 
 ---
 
-## Component Specifications
-
-### 1. Engine Backend (`dataset_genrator.py`)
-
-Serves as the main orchestrator for data generation and HTTP API endpoints. It defines schema routing, processes vector operations, and returns structured data payloads to client callers.
-
-### 2. Frontend Interface (`templates/`)
-
-Houses clean client templates rendering dynamic forms. Allows users to adjust sample density, specify value ranges, and stream generated outputs directly in browser sessions.
-
-### 3. Interactive Notebook (`test.ipynb`)
-
-Provides a rapid prototyping lab for verifying custom schemas, measuring iteration runtime, and prototyping new distribution algorithms prior to API deployment.
-
----
-
-## Setup & Installation Guide
+## Installation & Setup
 
 ### Prerequisites
 
-* **Python Engine:** 3.8, 3.9, 3.10, 3.11, or 3.12
-* **Package Manager:** `pip` or `conda`
+1. **Python:** 3.8 or higher installed.
+2. **Ollama:** Installed locally and running.
+```bash
+ollama pull mistral
 
-### Step 1: Clone Repository
+```
+
+
+
+### 1. Clone Repository
 
 ```bash
-git clone [https://github.com/debashish-5/dataset-generator.git](https://github.com/debashish-5/dataset-generator.git)
+git clone https://github.com/debashish-5/dataset-generator.git
 cd dataset-generator
 
 ```
 
-### Step 2: Environment Isolation
+### 2. Configure Virtual Environment
 
 ```bash
-# POSIX Systems (Linux / macOS)
+# Linux / macOS
 python3 -m venv venv
 source venv/bin/activate
 
-# Windows Environments
+# Windows
 python -m venv venv
 venv\Scripts\activate
 
 ```
 
-### Step 3: Dependency Installation
+### 3. Install Dependencies
 
 ```bash
-pip install --upgrade pip
-pip install pandas numpy flask notebook
+pip install -r requirements.txt
+# Or install core libraries manually:
+pip install pydantic typing_extensions langchain-groq langchain-ollama pandas flask requests langsmith python-dotenv notebook
+
+```
+
+### 4. Configure Environment Variables (`.env`)
+
+Create a `.env` file in the project root:
+
+```env
+# LangSmith Observability Configuration
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+LANGCHAIN_API_KEY="your_langsmith_api_key_here"
+LANGCHAIN_PROJECT="dataset-generator"
+
+# Optional Cloud LLM Backup Keys
+GROQ_API_KEY="your_groq_api_key_here"
 
 ```
 
 ---
 
-## Usage & Execution Workflows
+## Running the Application
 
-### Scenario A: Launch Web Dashboard
+### Option A: Launch Flask Web Application
 
-Run the primary backend engine to initialize the Flask server:
+Start the server backend:
 
 ```bash
 python dataset_genrator.py
 
 ```
 
-Open a browser and navigate to `http://127.0.0.1:5000/`.
+Open your browser and navigate to:
+`[http://127.0.0.1:5000](http://127.0.0.1:5000)`
 
-### Scenario B: Interactive Notebook Execution
+### Option B: Interactive Prototyping in Jupyter
 
-Launch the Jupyter testing workspace:
+Launch the testing workspace notebook:
 
 ```bash
 jupyter notebook test.ipynb
 
 ```
 
-### Scenario C: Programmatic Import
-
-Use the generator engine directly inside custom Python scripts:
-
-```python
-from dataset_genrator import DatasetGenerator
-
-# Initialize generator with custom schema configuration
-generator = DatasetGenerator(
-    schema={
-        "product_id": {"type": "uuid"},
-        "product_name": {"type": "string", "category": "electronics"},
-        "price": {"type": "float", "min": 100.0, "max": 1500.0},
-        "stock_count": {"type": "integer", "min": 0, "max": 500}
-    }
-)
-
-# Synthesize DataFrame containing 10,000 rows
-df = generator.generate(rows=10000)
-
-# Export to target storage
-df.to_csv("phone.csv", index=False)
-
-```
-
 ---
 
-## API Reference Protocol
+## API Protocol
 
-### Endpoint: `POST /api/v1/generate`
+### Endpoint: `POST /generate`
 
-Synthesizes a custom dataset based on the provided JSON body payload.
+Generates a synthetic dataset according to prompt criteria and saves the resulting CSV file locally.
 
 #### Request Headers
 
@@ -227,96 +334,61 @@ Content-Type: application/json
 
 ```
 
-#### Sample Body Payload
+#### Request Payload
 
 ```json
 {
-  "row_count": 5000,
-  "export_format": "csv",
-  "schema": [
-    {
-      "column_name": "product_name",
-      "data_type": "string",
-      "prefix": "Phone_"
-    },
-    {
-      "column_name": "ram_gb",
-      "data_type": "choice",
-      "values": [4, 8, 12, 16]
-    },
-    {
-      "column_name": "price_usd",
-      "data_type": "float",
-      "min": 199.99,
-      "max": 1299.99
-    }
+  "query": "Generate 5 sample details of gaming laptops including model, GPU, RAM, and price.",
+  "filename": "laptops.csv",
+  "rows": 5
+}
+
+```
+
+#### Success Response (`200 OK`)
+
+```json
+{
+  "status": "success",
+  "message": "Dataset generated successfully: laptops.csv",
+  "file_name": "laptops.csv",
+  "rows": 5,
+  "columns_count": 4,
+  "columns": ["Laptop Model", "GPU", "RAM", "Price (USD)"],
+  "data": [
+    ["Asus ROG Strix", "NVIDIA RTX 4080", "32GB", "$2199"],
+    ["MSI Raider GE78", "NVIDIA RTX 4090", "64GB", "$3299"],
+    ["Lenovo Legion Pro 7i", "NVIDIA RTX 4070", "16GB", "$1749"],
+    ["Acer Predator Helios", "NVIDIA RTX 4060", "16GB", "$1399"],
+    ["Razer Blade 16", "NVIDIA RTX 4090", "32GB", "$3599"]
   ]
 }
 
 ```
 
-#### Response Payload (`200 OK`)
+#### Error Response (`500 Internal Server Error`)
 
 ```json
 {
-  "status": "success",
-  "rows_generated": 5000,
-  "time_elapsed_ms": 42.8,
-  "download_url": "/downloads/phone.csv"
+  "status": "error",
+  "message": "Generated row length does not match column count."
 }
 
 ```
 
 ---
 
-## Performance Benchmarks
+## Troubleshooting & Validation
 
-Engine performance evaluation recorded on an 8-core CPU architecture with 16GB RAM:
-
-| Target Row Volume | Processing Time (ms) | Peak RAM Usage (MB) | Output File Size (CSV) |
-| --- | --- | --- | --- |
-| **1,000 Rows** | 8.2 ms | ~14 MB | ~45 KB |
-| **10,000 Rows** | 34.5 ms | ~28 MB | ~450 KB |
-| **100,000 Rows** | 210.1 ms | ~85 MB | ~4.5 MB |
-| **1,000,000 Rows** | 1,840.0 ms | ~340 MB | ~45.0 MB |
-
----
-
-## Output Schema Example
-
-Generated output preview from default dataset specs (`phone.csv`):
-
-| Product ID | Product Name | Spec Configuration | Base Price (USD) | Availability |
-| --- | --- | --- | --- | --- |
-| `PHN-8821` | Flagship Phone X | 256GB / 12GB RAM | $899.00 | In Stock |
-| `PHN-8822` | Lite Phone Pro | 128GB / 8GB RAM | $499.00 | In Stock |
-| `PHN-8823` | Budget Phone A1 | 64GB / 4GB RAM | $199.00 | Out of Stock |
-| `PHN-8824` | Ultra Phone Pro Max | 512GB / 16GB RAM | $1299.00 | In Stock |
-
----
-
-## Roadmap & Enhancement Strategy
-
-* **Advanced Distribution Generators:** Support Gaussian, Normal, and Poisson probability density distributions for numeric synthesis.
-* **SQL & Parquet Streaming:** Native connectors for direct DB seeding (PostgreSQL, MySQL) and binary Apache Parquet exports.
-* **Automated Anomaly Injection:** Configurable synthetic noise generation to benchmark machine learning resilience.
-
----
-
-## Contributing
-
-1. Fork the project repository.
-2. Create your feature branch (`git checkout -b feature/OptimizationEngine`).
-3. Commit your changes (`git commit -m 'Implement vectorized generator optimizations'`).
-4. Push to the branch (`git push origin feature/OptimizationEngine`).
-5. Open a Pull Request.
+| Issue | Root Cause | Solution |
+| --- | --- | --- |
+| **`ConnectionRefusedError` on Ollama** | Ollama local daemon is not running. | Execute `ollama serve` or launch the Ollama app desktop process. |
+| **`ValueError: Model did not generate data`** | LLM output was cut off or failed schema parsing. | Ensure the model `mistral` is pulled (`ollama pull mistral`) and check system RAM limits. |
+| **Missing Traces in LangSmith** | `LANGCHAIN_TRACING_V2` or API Key missing in `.env`. | Verify `.env` parameters and ensure `load_dotenv()` runs before importing LangChain modules. |
+| **Filename Overwriting / Misformatting** | Non-standard string passed in filename argument. | The internal `clean_filename()` method automatically strips invalid characters and enforces `.csv` extensions. |
 
 ---
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for details.
-
-```
-
-```
+Distributed under the **MIT License**. See `LICENSE` for details.
