@@ -129,14 +129,7 @@ Sample output generated using default product specification schemas (`phone.csv`
 Contributions are welcome. Please follow these steps:
 
 1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/NewFeature`).
-3. Commit your changes (`git commit -m 'Add NewFeature'`).
-4. Push to the branch (`git push origin feature/NewFeature`).
-5. Open a Pull Request.
-
----
-
-## License
+2. Create a feature branch (`git checkout -b feature/NewFeature
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
