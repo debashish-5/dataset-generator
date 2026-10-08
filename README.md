@@ -3,18 +3,6 @@
 
 # Dataset Generator
 
-**Enterprise-Grade Synthetic Data Orchestration Engine & Web Analytics Dashboard**
-
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Framework](https://img.shields.io/badge/Framework-Flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![Data Processing](https://img.shields.io/badge/Data%20Engine-Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge)]()
-[![Code Architecture](https://img.shields.io/badge/Architecture-Modular%20MVC-orange?style=for-the-badge)]()
-
----
-
-[System Architecture](#system-architecture) • [Core Capabilities](#core-capabilities) • [Directory Blueprint](#directory-blueprint) • [Installation & Setup](#installation--setup) • [API & Execution Pipeline](#api--execution-pipeline) • [Performance Benchmarks](#performance-benchmarks) • [Contributing](#contributing)
 
 </div>
 
