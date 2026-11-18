@@ -1,4 +1,5 @@
-# Dataset Generator
+# Dataset Generator  <img width="512" height="512" alt="image" src="https://github.com/user-attachments/assets/7869e876-4283-4208-8e51-352ae1dc3c07" />
+
 
 **Agentic Synthetic Data Synthesis Platform Powered by Local LLMs, LangChain, and LangSmith Observability**
 
